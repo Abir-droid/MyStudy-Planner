@@ -983,3 +983,432 @@ footer p + p {
         transition-duration: .01ms !important;
     }
 }
+/* =====================================
+   PREMIUM GLASSMORPHISM UI
+   MyStudy Planner
+===================================== */
+
+/* Background */
+body {
+    background:
+        radial-gradient(circle at 10% 10%, #8b5cf625, transparent 30%),
+        radial-gradient(circle at 90% 80%, #c026d320, transparent 30%),
+        var(--bg);
+    background-attachment: fixed;
+}
+
+/* Glass cards */
+.stat-card,
+.progress-section,
+.panel {
+    background: rgba(255, 255, 255, 0.58);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 20px;
+    box-shadow:
+        0 8px 32px rgba(31, 38, 135, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    transition:
+        transform 0.35s ease,
+        box-shadow 0.35s ease,
+        border-color 0.35s ease;
+}
+
+/* Dark mode glass */
+body.dark .stat-card,
+body.dark .progress-section,
+body.dark .panel {
+    background: rgba(35, 38, 62, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Hover effect */
+.stat-card:hover,
+.progress-section:hover,
+.panel:hover {
+    transform: translateY(-5px);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow:
+        0 18px 40px rgba(105, 88, 232, 0.14),
+        0 0 15px rgba(168, 85, 247, 0.08);
+}
+
+/* Welcome glass highlight */
+.welcome {
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow:
+        0 15px 40px rgba(105, 88, 232, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Inputs */
+form input,
+form select,
+.search-row input,
+.search-row select,
+.task-heading select {
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+body.dark form input,
+body.dark form select,
+body.dark .search-row input,
+body.dark .search-row select,
+body.dark .task-heading select {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+form input:focus,
+form select:focus,
+.search-row input:focus {
+    border-color: #9575ff;
+    box-shadow: 0 0 0 4px rgba(149, 117, 255, 0.13);
+    transform: translateY(-1px);
+}
+
+/* Task glass cards */
+.task-item {
+    padding: 15px;
+    margin: 7px 0;
+    border: 1px solid transparent;
+    border-radius: 13px;
+}
+
+.task-item:hover {
+    background: rgba(139, 92, 246, 0.07);
+    border-color: rgba(139, 92, 246, 0.18);
+}
+
+/* Calendar glass */
+.calendar-day:not(.weekday) {
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+}
+
+body.dark .calendar-day:not(.weekday) {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Buttons */
+.add-btn,
+.save-timer-btn {
+    background: linear-gradient(120deg, #6958e8, #a855f7);
+    box-shadow: 0 6px 18px rgba(105, 88, 232, 0.25);
+    transition: all 0.3s ease;
+}
+
+.add-btn:hover,
+.save-timer-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(105, 88, 232, 0.4);
+}
+
+/* Smooth entrance */
+@keyframes glassEnter {
+    from {
+        opacity: 0;
+        transform: translateY(22px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.stat-card,
+.progress-section,
+.panel:not(.timer-section) {
+    animation: glassEnter 0.65s ease both;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .stat-card,
+    .progress-section,
+    .panel {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* AUTHENTICATION DESIGN */
+
+.dashboard-locked > :not(.header):not(#authSection) {
+    display: none !important;
+}
+
+.auth-section {
+    min-height: 75vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 15px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 430px;
+    padding: 35px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 15px 45px rgba(70, 40, 120, 0.12);
+    backdrop-filter: blur(18px);
+    animation: authAppear 0.6s ease;
+}
+
+.auth-icon {
+    font-size: 42px;
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.auth-card h2,
+.auth-card > p {
+    text-align: center;
+}
+
+.auth-card h2 {
+    margin-bottom: 8px;
+}
+
+.auth-card > p {
+    color: #777;
+    margin-bottom: 25px;
+}
+
+.auth-card form label {
+    display: block;
+    margin: 14px 0 7px;
+    font-weight: 600;
+}
+
+.auth-card form input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.auth-submit {
+    width: 100%;
+    margin-top: 22px;
+}
+
+.auth-switch {
+    margin-top: 22px;
+    font-size: 14px;
+}
+
+.auth-switch button {
+    border: none;
+    background: none;
+    color: #7950d8;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.auth-message {
+    color: #d64545;
+    font-size: 14px;
+}
+
+body.dark .auth-card {
+    background: rgba(35, 30, 55, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+@keyframes authAppear {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+/* Overdue Task Alert */
+.badge.overdue {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #ef4444;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+/* Overdue Alert */
+.badge.overdue {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #ef4444;
+}
+
+/* Due Today Alert */
+.badge.due-today {
+    background: #ffedd5;
+    color: #c2410c;
+    border: 1px solid #fb923c;
+}
+
+/* Upcoming Deadline Alert */
+.badge.due-soon {
+    background: #fef9c3;
+    color: #a16207;
+    border: 1px solid #eab308;
+}
+/* ======================================
+   UPCOMING TASKS DASHBOARD
+====================================== */
+
+.upcoming-section {
+    margin: 25px 0;
+    padding: 25px;
+    border-radius: 22px;
+    background: var(--card-bg, #1e2035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.upcoming-heading {
+    margin-bottom: 20px;
+}
+
+.upcoming-heading h3 {
+    margin-bottom: 7px;
+    font-size: 22px;
+}
+
+.upcoming-heading p {
+    color: var(--muted, #a5a5b5);
+    font-size: 14px;
+}
+
+.upcoming-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.upcoming-card {
+    padding: 18px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    min-width: 0;
+}
+
+.upcoming-card h4 {
+    margin-bottom: 15px;
+}
+
+.overdue-card h4 {
+    color: #ff7070;
+}
+
+.today-card h4 {
+    color: #ffbd69;
+}
+
+.next-card h4 {
+    color: #8e91ff;
+}
+
+.upcoming-task-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    overflow-wrap: anywhere;
+}
+
+.upcoming-task-item strong {
+    font-size: 14px;
+}
+
+.upcoming-task-item small {
+    color: #a5a5b5;
+    font-size: 12px;
+}
+
+.upcoming-empty {
+    color: #a5a5b5;
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .upcoming-grid {
+        grid-template-columns: 1fr;
+    }
+}
+/* ======================================
+   USER PROFILE SECTION
+====================================== */
+
+.profile-section {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px 25px;
+    margin: 20px 0;
+    background: var(--card-bg, #1e2035);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    position: relative;
+}
+
+.profile-avatar {
+    width: 65px;
+    height: 65px;
+    min-width: 65px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    background: linear-gradient(135deg, #7865ed, #a18aff);
+    border-radius: 50%;
+}
+
+.profile-info h3 {
+    margin-bottom: 5px;
+    font-size: 19px;
+}
+
+.profile-info p {
+    color: #a5a5b5;
+    font-size: 13px;
+    margin-bottom: 7px;
+}
+
+.profile-status {
+    color: #35cf8a;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.profile-label {
+    margin-left: auto;
+    color: #9585ff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+@media (max-width: 600px) {
+    .profile-section {
+        padding: 15px;
+    }
+
+    .profile-label {
+        display: none;
+    }
+}

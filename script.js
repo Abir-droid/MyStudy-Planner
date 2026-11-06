@@ -1,4 +1,3 @@
-
 // ======================================
 // 1. GET HTML ELEMENTS
 // ======================================
@@ -25,30 +24,66 @@ const submitBtn = document.getElementById("submitBtn");
 const cancelEdit = document.getElementById("cancelEdit");
 
 // ======================================
-// 2. LOCAL STORAGE
+// 2. TASK STATE + BACKEND API
 // ======================================
 
-function loadTasks() {
-    try {
-        const saved = JSON.parse(
-            localStorage.getItem("myStudyTasks")
-        );
+const API_URL = "http://localhost:5000/api";
 
-        return Array.isArray(saved) ? saved : [];
-    } catch (error) {
-        console.error("Could not load tasks:", error);
-        return [];
-    }
-}
-
-let tasks = loadTasks();
+let tasks = [];
 let editingId = null;
 
-function saveTasks() {
-    localStorage.setItem(
-        "myStudyTasks",
-        JSON.stringify(tasks)
-    );
+function getToken() {
+    return localStorage.getItem("myStudyToken");
+}
+
+async function apiRequest(path, options = {}) {
+    const token = getToken();
+
+    const response = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(options.headers || {})
+        }
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+        localStorage.removeItem("myStudyToken");
+        localStorage.removeItem("myStudyUser");
+        showAuthScreen();
+        throw new Error(data.message || "Session expired. Please login again.");
+    }
+
+    if (!response.ok || data.success === false) {
+        throw new Error(data.message || "Something went wrong. Please try again.");
+    }
+
+    return data;
+}
+
+// ======================================
+// LOAD TASKS FROM BACKEND
+// ======================================
+
+async function loadTasksFromBackend() {
+    const data = await apiRequest("/tasks");
+
+    const serverTasks = Array.isArray(data)
+        ? data
+        : (data.tasks || data.data || []);
+
+    tasks = serverTasks.map(task => ({
+        ...task,
+        id: Number(task.id),
+        dueDate: String(task.dueDate || task.due_date || "").slice(0, 10),
+        completed: Boolean(task.completed)
+    }));
+
+    renderTasks();
+    renderCalendar();
 }
 
 // ======================================
@@ -81,7 +116,7 @@ dueDate.min = localToday;
 // 4. ADD AND EDIT TASK
 // ======================================
 
-taskForm.addEventListener("submit", function(event) {
+taskForm.addEventListener("submit", async function(event) {
     event.preventDefault();
 
     const title = taskTitle.value.trim();
@@ -99,37 +134,38 @@ taskForm.addEventListener("submit", function(event) {
         return;
     }
 
-    if (editingId !== null) {
-        tasks = tasks.map(function(task) {
-            if (task.id === editingId) {
-                return {
-                    ...task,
-                    title: title,
-                    subject: taskSubject,
-                    dueDate: date,
-                    priority: taskPriority
-                };
-            }
+    const payload = {
+        title,
+        subject: taskSubject,
+        dueDate: date,
+        priority: taskPriority
+    };
 
-            return task;
-        });
-    } else {
-        const newTask = {
-            id: Date.now().toString(),
-            title: title,
-            subject: taskSubject,
-            dueDate: date,
-            priority: taskPriority,
-            completed: false
-        };
+    submitBtn.disabled = true;
 
-        tasks.push(newTask);
+    try {
+        if (editingId !== null) {
+            await apiRequest(`/tasks/${editingId}`, {
+                method: "PUT",
+                body: JSON.stringify(payload)
+            });
+        } else {
+            await apiRequest("/tasks", {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+        }
+
+        await loadTasksFromBackend();
+        await loadUserProfile();
+        resetForm();
+
+    } catch (error) {
+        alert(error.message);
+
+    } finally {
+        submitBtn.disabled = false;
     }
-
-    saveTasks();
-    resetForm();
-    renderTasks();
-    renderCalendar();
 });
 
 // ======================================
@@ -154,7 +190,7 @@ cancelEdit.addEventListener("click", resetForm);
 // ======================================
 
 function editTask(id) {
-    const task = tasks.find(task => task.id === id);
+    const task = tasks.find(task => Number(task.id) === Number(id));
 
     if (!task) return;
 
@@ -183,43 +219,40 @@ function editTask(id) {
 // 7. COMPLETE / UNCOMPLETE TASK
 // ======================================
 
-function toggleTask(id) {
-    tasks = tasks.map(function(task) {
-        if (task.id === id) {
-            return {
-                ...task,
-                completed: !task.completed
-            };
-        }
+async function toggleTask(id) {
+    try {
+        await apiRequest(`/tasks/${id}/toggle`, {
+            method: "PATCH"
+        });
 
-        return task;
-    });
+        await loadTasksFromBackend();
 
-    saveTasks();
-    renderTasks();
-    renderCalendar();
+    } catch (error) {
+        alert(error.message);
+    }
 }
 
 // ======================================
 // 8. DELETE TASK
 // ======================================
 
-function deleteTask(id) {
-    const confirmed = confirm(
-        "Are you sure you want to delete this task?"
-    );
+async function deleteTask(id) {
+    if (!confirm("Are you sure you want to delete this task?")) return;
 
-    if (!confirmed) return;
+    try {
+        await apiRequest(`/tasks/${id}`, {
+            method: "DELETE"
+        });
 
-    tasks = tasks.filter(task => task.id !== id);
+        if (Number(editingId) === Number(id)) {
+            resetForm();
+        }
 
-    if (editingId === id) {
-        resetForm();
+        await loadTasksFromBackend();
+
+    } catch (error) {
+        alert(error.message);
     }
-
-    saveTasks();
-    renderTasks();
-    renderCalendar();
 }
 
 // ======================================
@@ -233,12 +266,9 @@ function updateSubjectOptions() {
         tasks.map(task => task.subject)
     )].sort();
 
-    subjectFilter.innerHTML = "";
-
-    const allOption = document.createElement("option");
-    allOption.value = "all";
-    allOption.textContent = "All Subjects";
-    subjectFilter.appendChild(allOption);
+    subjectFilter.innerHTML = `
+        <option value="all">All Subjects</option>
+    `;
 
     subjects.forEach(function(name) {
         const option = document.createElement("option");
@@ -247,11 +277,9 @@ function updateSubjectOptions() {
         subjectFilter.appendChild(option);
     });
 
-    if (subjects.includes(currentValue)) {
-        subjectFilter.value = currentValue;
-    } else {
-        subjectFilter.value = "all";
-    }
+    subjectFilter.value = subjects.includes(currentValue)
+        ? currentValue
+        : "all";
 }
 
 // ======================================
@@ -332,11 +360,38 @@ function renderTasks() {
         priorityBadge.className = `badge ${task.priority}`;
         priorityBadge.textContent = `${task.priority} Priority`;
 
-        const statusBadge = document.createElement("span");
-        statusBadge.className = "badge";
-        statusBadge.textContent = task.completed
-            ? "Completed"
-            : "Pending";
+const isOverdue =
+    !task.completed &&
+    task.dueDate < localToday;
+
+const statusBadge = document.createElement("span");
+statusBadge.className = "badge";
+
+const todayDate = new Date(localToday + "T00:00:00");
+const taskDate = new Date(task.dueDate + "T00:00:00");
+
+const daysLeft = Math.round(
+    (taskDate - todayDate) / (1000 * 60 * 60 * 24)
+);
+
+if (task.completed) {
+    statusBadge.textContent = "Completed";
+}
+else if (daysLeft < 0) {
+    statusBadge.textContent = "⚠️ OVERDUE";
+    statusBadge.classList.add("overdue");
+}
+else if (daysLeft === 0) {
+    statusBadge.textContent = "🔔 DUE TODAY";
+    statusBadge.classList.add("due-today");
+}
+else if (daysLeft <= 2) {
+    statusBadge.textContent = "⏰ DUE SOON";
+    statusBadge.classList.add("due-soon");
+}
+else {
+    statusBadge.textContent = "Pending";
+}
 
         badges.appendChild(priorityBadge);
         badges.appendChild(statusBadge);
@@ -376,6 +431,7 @@ function renderTasks() {
 
     updateSubjectOptions();
     updateDashboard();
+    renderUpcomingTasks();
 }
 
 filterTasks.addEventListener("change", renderTasks);
@@ -586,7 +642,6 @@ themeBtn.addEventListener("click", function() {
 });
 
 applyTheme();
-
 // ======================================
 // 14. NEON POMODORO TIMER
 // ======================================
@@ -810,23 +865,21 @@ saveSettingsBtn.addEventListener("click", function() {
         JSON.stringify(timerSettings)
     );
 
-    stopTimer();
-
-    selectedMinutes = timerSettings[activeKind];
-    remainingSeconds = selectedMinutes * 60;
+    if (!timerInterval) {
+        selectedMinutes = timerSettings[activeKind];
+        remainingSeconds = selectedMinutes * 60;
+        updateTimerDisplay();
+    }
 
     loadTimerSettings();
-    updateTimerDisplay();
 
-    timerMessage.textContent = "✅ Your timer settings have been saved!";
+    timerMessage.textContent = "✅ Timer settings saved!";
 });
 
 // ======================================
 // 15. INITIAL PAGE LOAD
 // ======================================
 
-renderTasks();
-renderCalendar();
 loadTimerSettings();
 updateTimerDisplay();
 
@@ -902,3 +955,289 @@ document.addEventListener("click", function(event) {
         ripple.remove();
     });
 });
+
+// ======================================
+// 18. LOGIN & REGISTRATION
+// ======================================
+
+const authSection = document.getElementById("authSection");
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+const authTitle = document.getElementById("authTitle");
+const authSubtitle = document.getElementById("authSubtitle");
+const authMessage = document.getElementById("authMessage");
+const authSwitch = document.getElementById("authSwitch");
+const showRegister = document.getElementById("showRegister");
+
+function showLogin() {
+    loginForm.classList.remove("hidden");
+    registerForm.classList.add("hidden");
+
+    authTitle.textContent = "Welcome Back!";
+    authSubtitle.textContent = "Login to continue your study journey.";
+
+    authSwitch.innerHTML =
+        `Don't have an account? <button type="button" id="showRegister">Register</button>`;
+
+    document.getElementById("showRegister")
+        .addEventListener("click", showRegisterForm);
+
+    authMessage.textContent = "";
+}
+
+function showRegisterForm() {
+    loginForm.classList.add("hidden");
+    registerForm.classList.remove("hidden");
+
+    authTitle.textContent = "Create Account";
+    authSubtitle.textContent = "Join MyStudy Planner today.";
+
+    authSwitch.innerHTML =
+        `Already have an account? <button type="button" id="showLogin">Login</button>`;
+
+    document.getElementById("showLogin")
+        .addEventListener("click", showLogin);
+
+    authMessage.textContent = "";
+}
+
+showRegister.addEventListener("click", showRegisterForm);
+
+// REGISTER
+registerForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const full_name = document.getElementById("registerName").value.trim();
+    const email = document.getElementById("registerEmail").value.trim();
+    const password = document.getElementById("registerPassword").value;
+
+    authMessage.textContent = "Creating your account...";
+
+    try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ full_name, email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Registration failed");
+        }
+
+        registerForm.reset();
+        showLogin();
+        authMessage.textContent = "Account created successfully! Please login.";
+        authMessage.style.color = "green";
+
+    } catch (error) {
+        authMessage.textContent = error.message;
+        authMessage.style.color = "#d64545";
+    }
+});
+
+// LOGIN
+loginForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+
+    authMessage.textContent = "Logging in...";
+
+    try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success || !data.token) {
+            throw new Error(data.message || "Login failed");
+        }
+
+        localStorage.setItem("myStudyToken", data.token);
+        localStorage.setItem("myStudyUser", JSON.stringify(data.user));
+
+        await loadTasksFromBackend();
+await loadUserProfile();
+        authSection.classList.add("hidden");
+        document.querySelector(".container").classList.remove("dashboard-locked");
+        logoutBtn.classList.remove("hidden");
+
+        alert("Login successful! Welcome to MyStudy Planner.");
+
+    } catch (error) {
+        authMessage.textContent = error.message;
+        authMessage.style.color = "#d64545";
+    }
+});
+
+// ======================================
+// 19. LOGOUT FUNCTIONALITY
+// ======================================
+
+const logoutBtn = document.getElementById("logoutBtn");
+
+function showAuthScreen() {
+    document.querySelector(".container").classList.add("dashboard-locked");
+    authSection.classList.remove("hidden");
+    logoutBtn.classList.add("hidden");
+
+    tasks = [];
+
+    renderTasks();
+    renderCalendar();
+    showLogin();
+}
+
+logoutBtn.addEventListener("click", function() {
+    if (!confirm("Are you sure you want to logout?")) return;
+
+    localStorage.removeItem("myStudyToken");
+    localStorage.removeItem("myStudyUser");
+
+    showAuthScreen();
+
+    alert("You have logged out successfully.");
+});
+
+// Restore the login session after a page refresh.
+(async function initializeAuth() {
+    if (!getToken()) {
+        showAuthScreen();
+        return;
+    }
+
+    try {
+        await loadTasksFromBackend();
+        await loadUserProfile();
+
+        authSection.classList.add("hidden");
+        document.querySelector(".container").classList.remove("dashboard-locked");
+        logoutBtn.classList.remove("hidden");
+
+    } catch (error) {
+        console.error("Could not restore login session:", error);
+        showAuthScreen();
+    }
+})();
+// ======================================
+// UPCOMING TASKS DASHBOARD
+// ======================================
+
+function renderUpcomingTasks() {
+    const overdueList = document.getElementById("overdueTasksList");
+    const todayList = document.getElementById("todayTasksList");
+    const nextList = document.getElementById("nextTasksList");
+
+    if (!overdueList || !todayList || !nextList) return;
+
+    overdueList.innerHTML = "";
+    todayList.innerHTML = "";
+    nextList.innerHTML = "";
+
+    const todayDate = new Date(localToday + "T00:00:00");
+
+    const overdueTasks = tasks.filter(task =>
+        !task.completed && task.dueDate < localToday
+    );
+
+    const todayTasks = tasks.filter(task =>
+        !task.completed && task.dueDate === localToday
+    );
+
+    const nextTasks = tasks.filter(task => {
+        const taskDate = new Date(task.dueDate + "T00:00:00");
+        const daysLeft = Math.round(
+            (taskDate - todayDate) / (1000 * 60 * 60 * 24)
+        );
+
+        return !task.completed && daysLeft > 0 && daysLeft <= 7;
+    });
+
+    function addTaskItem(container, task) {
+        const item = document.createElement("div");
+        item.className = "upcoming-task-item";
+
+        const title = document.createElement("strong");
+        title.textContent = task.title;
+
+        const subjectText = document.createElement("small");
+        subjectText.textContent = task.subject;
+
+        const dateText = document.createElement("small");
+        dateText.textContent = "Due: " + task.dueDate;
+
+        item.appendChild(title);
+        item.appendChild(subjectText);
+        item.appendChild(dateText);
+
+        container.appendChild(item);
+    }
+
+    function showEmpty(container, message) {
+        const text = document.createElement("p");
+        text.className = "upcoming-empty";
+        text.textContent = message;
+        container.appendChild(text);
+    }
+
+    if (overdueTasks.length) {
+        overdueTasks.forEach(task => addTaskItem(overdueList, task));
+    } else {
+        showEmpty(overdueList, "No overdue tasks 🎉");
+    }
+
+    if (todayTasks.length) {
+        todayTasks.forEach(task => addTaskItem(todayList, task));
+    } else {
+        showEmpty(todayList, "No tasks for today.");
+    }
+
+    if (nextTasks.length) {
+        nextTasks.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+        nextTasks.forEach(task => addTaskItem(nextList, task));
+    } else {
+        showEmpty(nextList, "No upcoming tasks.");
+    }
+}
+// ======================================
+// LOAD USER PROFILE FROM BACKEND
+// ======================================
+
+async function loadUserProfile() {
+    try {
+        const response = await apiRequest("/auth/profile");
+
+        const user =
+            response.user ||
+            response.data?.user ||
+            response.data ||
+            response;
+
+        const nameElement = document.getElementById("profileName");
+        const emailElement = document.getElementById("profileEmail");
+
+        if (!nameElement || !emailElement) {
+            console.error("Profile HTML elements not found!");
+            return;
+        }
+
+        nameElement.textContent =
+            user.full_name || user.name || "Student";
+
+        emailElement.textContent =
+            user.email || "Email not available";
+
+    } catch (error) {
+        console.error("Profile loading failed:", error);
+    }
+}
