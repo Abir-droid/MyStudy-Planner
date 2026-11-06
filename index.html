@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyStudy Planner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <header class="header">
+        <div>
+            <h1>MyStudy <span>Planner.</span></h1>
+            <p>Your personal study workspace</p>
+        </div>
+        <div class="header-actions">
+            <span id="currentDate"></span>
+            <button id="themeBtn" class="icon-btn" aria-label="Toggle theme">🌙</button>
+        </div>
+    </header>
+
+    <section class="welcome">
+        <div>
+            <p class="small-text">WELCOME BACK 👋</p>
+            <h2>Plan your day, achieve your goals.</h2>
+            <p>Stay organized and make every study session count.</p>
+        </div>
+        <div class="welcome-icon">📚</div>
+    </section>
+
+    <section class="stats">
+        <div class="stat-card">
+            <div class="stat-icon purple">📋</div>
+            <p>Total Tasks</p>
+            <h2 id="totalTasks">0</h2>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">⏳</div>
+            <p>Pending</p>
+            <h2 id="pendingTasks">0</h2>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">✅</div>
+            <p>Completed</p>
+            <h2 id="completedTasks">0</h2>
+        </div>
+    </section>
+
+    <section class="progress-section">
+        <div class="section-heading">
+            <h3>Study Progress</h3>
+            <span id="progressText">0%</span>
+        </div>
+        <div class="progress-bar">
+            <div id="progressFill"></div>
+        </div>
+        <p class="muted">Keep going! Every small step matters.</p>
+    </section>
+
+    <main class="main-grid">
+
+        <section class="panel">
+            <h3 id="formHeading">➕ Add New Task</h3>
+
+            <form id="taskForm">
+                <label for="taskTitle">Task Name</label>
+                <input type="text" id="taskTitle"
+                       placeholder="e.g. Complete Java OOP" required>
+
+                <label for="subject">Subject</label>
+                <input type="text" id="subject"
+                       placeholder="e.g. Java Programming" required>
+
+                <label for="dueDate">Due Date</label>
+                <input type="date" id="dueDate" required>
+
+                <label for="priority">Priority</label>
+                <select id="priority">
+                    <option value="Low">Low</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="High">High</option>
+                </select>
+
+                <div class="form-actions">
+                    <button type="submit" class="add-btn" id="submitBtn">
+                        + Add Task
+                    </button>
+                    <button type="button" id="cancelEdit" class="cancel-btn hidden">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="panel task-panel">
+            <div class="task-heading">
+                <h3>My Tasks</h3>
+                <select id="filterTasks">
+                    <option value="all">All Tasks</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+
+            <div class="search-row">
+                <input type="search" id="searchTasks"
+                       placeholder="Search task or subject...">
+                <select id="subjectFilter">
+                    <option value="all">All Subjects</option>
+                </select>
+            </div>
+
+            <div id="taskList" class="task-list"></div>
+        </section>
+
+    </main>
+
+    <section class="panel calendar-section">
+        <div class="section-heading">
+            <h3>📅 Study Calendar</h3>
+            <div class="calendar-controls">
+                <button id="prevMonth" class="icon-btn">←</button>
+                <strong id="calendarTitle"></strong>
+                <button id="nextMonth" class="icon-btn">→</button>
+            </div>
+        </div>
+
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <p class="muted">Your tasks are marked on their due dates.</p>
+    </section>
+
+    <!-- NEON FOCUS STUDY TIMER -->
+
+    <section class="panel timer-section">
+
+        <div class="timer-top">
+            <span class="timer-tag">✦ DEEP WORK MODE</span>
+            <h3>⏱️ Focus Study Timer</h3>
+            <p>Focus on your study, one session at a time.</p>
+        </div>
+
+        <div class="timer-modes">
+            <button class="mode-btn active"
+                    data-kind="study" data-mode="Study">
+                🎓 Study 25m
+            </button>
+
+            <button class="mode-btn"
+                    data-kind="shortBreak" data-mode="Break">
+                ☕ Short Break 5m
+            </button>
+
+            <button class="mode-btn"
+                    data-kind="longBreak" data-mode="Break">
+                🌿 Long Break 15m
+            </button>
+        </div>
+
+        <div class="clock-ring" id="clockRing">
+            <div class="clock-inner">
+                <div class="clock-icon">📖</div>
+                <div class="timer-display" id="timerDisplay">25:00</div>
+                <p id="timerMode">Study Session</p>
+            </div>
+        </div>
+
+        <div class="timer-actions">
+            <button id="startTimer" class="add-btn">▶ Start</button>
+            <button id="pauseTimer" class="cancel-btn">Ⅱ Pause</button>
+            <button id="resetTimer" class="cancel-btn">↻ Reset</button>
+        </div>
+
+        <p class="timer-message" id="timerMessage">
+            ✨ Ready when you are!
+        </p>
+
+        <div class="timer-settings">
+            <h4>⚙️ Customize Timer</h4>
+
+            <div class="timer-inputs">
+                <label>
+                    Study (min)
+                    <input type="number" id="studyMinutes"
+                           min="1" max="180" value="25">
+                </label>
+
+                <label>
+                    Short Break (min)
+                    <input type="number" id="shortMinutes"
+                           min="1" max="60" value="5">
+                </label>
+
+                <label>
+                    Long Break (min)
+                    <input type="number" id="longMinutes"
+                           min="1" max="60" value="15">
+                </label>
+            </div>
+
+            <button type="button" id="saveTimerSettings"
+                    class="save-timer-btn">
+                Save Timer Settings
+            </button>
+        </div>
+
+    </section>
+
+    <footer>
+        <p>Made By Badhon_Paul</p>
+        <p>MyStudy Planner</p>
+    </footer>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
