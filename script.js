@@ -27,7 +27,7 @@ const cancelEdit = document.getElementById("cancelEdit");
 // 2. TASK STATE + BACKEND API
 // ======================================
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://my-study-planner-beige.vercel.app/api";
 
 let tasks = [];
 let editingId = null;
