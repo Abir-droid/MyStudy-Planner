@@ -1,7 +1,7 @@
 -- MyStudy Planner — Database Initialization
--- Run once against your PostgreSQL database before first deploy.
+-- Uses unique table names so it never conflicts with other services sharing the same database.
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS mystudy_users (
     id            SERIAL PRIMARY KEY,
     full_name     VARCHAR(255) NOT NULL,
     email         VARCHAR(255) UNIQUE NOT NULL,
@@ -9,9 +9,9 @@ CREATE TABLE IF NOT EXISTS users (
     created_at    TIMESTAMPTZ  DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS tasks (
+CREATE TABLE IF NOT EXISTS mystudy_tasks (
     id         SERIAL PRIMARY KEY,
-    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES mystudy_users(id) ON DELETE CASCADE,
     title      VARCHAR(500) NOT NULL,
     subject    VARCHAR(255) NOT NULL,
     due_date   DATE         NOT NULL,
@@ -20,4 +20,4 @@ CREATE TABLE IF NOT EXISTS tasks (
     created_at TIMESTAMPTZ  DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
+CREATE INDEX IF NOT EXISTS idx_mystudy_tasks_user_id ON mystudy_tasks(user_id);

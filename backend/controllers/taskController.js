@@ -1,4 +1,3 @@
-
 const pool = require("../config/db");
 
 // Get all tasks of logged-in user
@@ -13,7 +12,7 @@ const getTasks = async (req, res) => {
                 priority,
                 completed,
                 created_at AS "createdAt"
-             FROM tasks
+             FROM mystudy_tasks
              WHERE user_id = $1
              ORDER BY created_at DESC`,
             [req.user.id]
@@ -27,7 +26,7 @@ const getTasks = async (req, res) => {
         console.error("Get tasks error:", error);
         res.status(500).json({
             success: false,
-            message: "Failed to get tasks"
+            message: error.message || "Failed to get tasks"
         });
     }
 };
@@ -52,7 +51,7 @@ const createTask = async (req, res) => {
         }
 
         const result = await pool.query(
-            `INSERT INTO tasks
+            `INSERT INTO mystudy_tasks
                 (user_id, title, subject, due_date, priority)
              VALUES ($1, $2, $3, $4, $5)
              RETURNING
@@ -67,17 +66,13 @@ const createTask = async (req, res) => {
             message: "Task created successfully",
             task: result.rows[0]
         });
-   
-} catch (error) {
-    console.error("CREATE TASK ERROR:", error);
-
-    res.status(500).json({
-        success: false,
-        message: "Failed to create task",
-        error: error.message
-    });
-}
-
+    } catch (error) {
+        console.error("CREATE TASK ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message || "Failed to create task"
+        });
+    }
 };
 
 // Update a task
@@ -101,7 +96,7 @@ const updateTask = async (req, res) => {
         }
 
         const result = await pool.query(
-            `UPDATE tasks
+            `UPDATE mystudy_tasks
              SET title = $1,
                  subject = $2,
                  due_date = $3,
@@ -139,7 +134,7 @@ const updateTask = async (req, res) => {
         console.error("Update task error:", error);
         res.status(500).json({
             success: false,
-            message: "Failed to update task"
+            message: error.message || "Failed to update task"
         });
     }
 };
@@ -150,7 +145,7 @@ const deleteTask = async (req, res) => {
         const { id } = req.params;
 
         const result = await pool.query(
-            "DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING id",
+            "DELETE FROM mystudy_tasks WHERE id = $1 AND user_id = $2 RETURNING id",
             [id, req.user.id]
         );
 
@@ -169,7 +164,7 @@ const deleteTask = async (req, res) => {
         console.error("Delete task error:", error);
         res.status(500).json({
             success: false,
-            message: "Failed to delete task"
+            message: error.message || "Failed to delete task"
         });
     }
 };
@@ -180,7 +175,7 @@ const toggleTask = async (req, res) => {
         const { id } = req.params;
 
         const result = await pool.query(
-            `UPDATE tasks
+            `UPDATE mystudy_tasks
              SET completed = NOT completed
              WHERE id = $1 AND user_id = $2
              RETURNING id, completed`,
@@ -198,15 +193,13 @@ const toggleTask = async (req, res) => {
             success: true,
             task: result.rows[0]
         });
-   } catch (error) {
-    console.error("CREATE TASK ERROR:", error);
-
-    res.status(500).json({
-        success: false,
-        message: "Failed to create task",
-        error: error.message
-    });
-}
+    } catch (error) {
+        console.error("Toggle task error:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message || "Failed to toggle task"
+        });
+    }
 };
 
 module.exports = {
@@ -216,4 +209,3 @@ module.exports = {
     deleteTask,
     toggleTask
 };
-

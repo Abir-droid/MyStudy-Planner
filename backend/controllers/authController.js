@@ -1,6 +1,5 @@
-
 const pool = require("../config/db");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 // =========================
@@ -25,7 +24,7 @@ const register = async (req, res) => {
         }
 
         const existingUser = await pool.query(
-            "SELECT id FROM users WHERE email = $1",
+            "SELECT id FROM mystudy_users WHERE email = $1",
             [email]
         );
 
@@ -36,10 +35,10 @@ const register = async (req, res) => {
             });
         }
 
-        const passwordHash = await bcrypt.hash(password, 12);
+        const passwordHash = await bcrypt.hash(password, 10);
 
         const result = await pool.query(
-            `INSERT INTO users (full_name, email, password_hash)
+            `INSERT INTO mystudy_users (full_name, email, password_hash)
              VALUES ($1, $2, $3)
              RETURNING id, full_name, email, created_at`,
             [full_name, email, passwordHash]
@@ -52,11 +51,11 @@ const register = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Registration error:", error.message);
+        console.error("Registration error:", error);
 
         return res.status(500).json({
             success: false,
-            message: "Server error"
+            message: error.message || "Server error"
         });
     }
 };
@@ -77,7 +76,7 @@ const login = async (req, res) => {
         }
 
         const result = await pool.query(
-            "SELECT * FROM users WHERE email = $1",
+            "SELECT * FROM mystudy_users WHERE email = $1",
             [email]
         );
 
@@ -124,11 +123,11 @@ const login = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Login error:", error.message);
+        console.error("Login error:", error);
 
         return res.status(500).json({
             success: false,
-            message: "Server error"
+            message: error.message || "Server error"
         });
     }
 };
@@ -141,7 +140,7 @@ const getProfile = async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT id, full_name, email, created_at
-             FROM users
+             FROM mystudy_users
              WHERE id = $1`,
             [req.user.id]
         );
@@ -159,17 +158,15 @@ const getProfile = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Profile error:", error.message);
+        console.error("Profile error:", error);
 
         return res.status(500).json({
             success: false,
-            message: "Server error"
+            message: error.message || "Server error"
         });
     }
 };
 
-
-// IMPORTANT: Export only once, at the bottom.
 module.exports = {
     register,
     login,
