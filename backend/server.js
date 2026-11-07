@@ -22,7 +22,10 @@ async function initDB() {
 }
 
 const app = express();
-const BASE = "/mystudy-planner";
+
+// Base subpath from APPLICATION_ROOT (like Coolify) or BASE_PATH, defaults to /mystudy-planner
+const rawBase = process.env.APPLICATION_ROOT || process.env.BASE_PATH || "/mystudy-planner";
+const BASE = ("/" + rawBase.trim().replace(/^\/+|\/+$/g, "")).replace(/^\/$/, "");
 
 // Trust Coolify's reverse proxy (Traefik)
 app.set("trust proxy", 1);
@@ -38,16 +41,26 @@ app.use(cors({
 
 app.use(express.json());
 
+const publicPath = path.join(__dirname, "public");
+
 // ── Static frontend ──────────────────────────────────────────
-app.use(BASE, express.static(path.join(__dirname, "public")));
+// Support both with subpath and without (if Traefik strips prefix)
+if (BASE) {
+    app.use(BASE, express.static(publicPath));
+}
+app.use(express.static(publicPath));
 
 // ── Health check ─────────────────────────────────────────────
-app.get(`${BASE}/health`, (req, res) => {
+const healthHandler = (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+};
+if (BASE) {
+    app.get(`${BASE}/health`, healthHandler);
+}
+app.get("/health", healthHandler);
 
 // ── DB test ───────────────────────────────────────────────────
-app.get(`${BASE}/api/test-db`, async (req, res) => {
+const testDbHandler = async (req, res) => {
     try {
         const result = await pool.query("SELECT NOW() AS current_time");
         res.json({ success: true, time: result.rows[0].current_time });
@@ -55,19 +68,28 @@ app.get(`${BASE}/api/test-db`, async (req, res) => {
         console.error("DB test error:", err.message);
         res.status(500).json({ success: false, message: "DB connection failed" });
     }
-});
+};
+if (BASE) {
+    app.get(`${BASE}/api/test-db`, testDbHandler);
+}
+app.get("/api/test-db", testDbHandler);
 
 // ── API routes ────────────────────────────────────────────────
-app.use(`${BASE}/api/auth`, authRoutes);
-app.use(`${BASE}/api/tasks`, taskRoutes);
+if (BASE) {
+    app.use(`${BASE}/api/auth`, authRoutes);
+    app.use(`${BASE}/api/tasks`, taskRoutes);
+}
+app.use("/api/auth", authRoutes);
+app.use("/api/tasks", taskRoutes);
 
 // ── SPA fallback — serve index.html for all subpath routes ────
-app.get(`${BASE}`, (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-app.get(`${BASE}/*splat`, (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+const sendIndex = (req, res) => res.sendFile(path.join(publicPath, "index.html"));
+
+if (BASE) {
+    app.get(`${BASE}`, sendIndex);
+    app.get(`${BASE}/*splat`, sendIndex);
+}
+app.get("/*splat", sendIndex);
 
 // ── Start ─────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
@@ -75,6 +97,6 @@ const PORT = process.env.PORT || 5000;
 initDB().then(() => {
     app.listen(PORT, "0.0.0.0", () => {
         console.log(`MyStudy Planner running on port ${PORT}`);
-        console.log(`Accessible at ${BASE}`);
+        console.log(`Base path: ${BASE || "/"}`);
     });
 });
