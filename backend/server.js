@@ -95,7 +95,7 @@ app.get("/*splat", sendIndex);
 const PORT = process.env.PORT || 5000;
 
 initDB().then(() => {
-    app.listen(PORT, "0.0.0.0", () => {
+    app.listen(PORT, () => {
         console.log(`MyStudy Planner running on port ${PORT}`);
         console.log(`Base path: ${BASE || "/"}`);
     });
